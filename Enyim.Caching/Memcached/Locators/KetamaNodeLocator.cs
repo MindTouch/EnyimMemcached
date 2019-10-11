@@ -16,6 +16,7 @@ namespace Enyim.Caching.Memcached
 		// TODO make this configurable without restructuring the whole config system
 		private const string DefaultHashName = "System.Security.Cryptography.MD5";
 		private const int ServerAddressMutations = 160;
+		private const int MemcachedDefaultPort = 11211;
 		private LookupData lookupData;
 		private string hashName;
 		private Func<HashAlgorithm> factory;
@@ -78,6 +79,18 @@ namespace Enyim.Caching.Memcached
 				// 01 02 03 04 05 06 07
 				// server will be stored with keys 0x07060504 & 0x03020100
 				string address = currentNode.EndPoint.ToString();
+
+				// PeteE: Other libketama-comaptible clients (libmemcached, node, pylibmc) ignore the port number
+				// when calculating the hash if the default port (11211) is used.
+				// If using a non-standard port, we use the full hostname:port
+				// Examples:
+				//   libmemcached: https://bazaar.launchpad.net/~tangent-trunk/libmemcached/1.2/view/head:/libmemcached/hosts.cc#L293
+				//   node-hashring: https://github.com/3rd-Eden/node-hashring/blob/master/index.js#L138
+
+				if (currentNode.EndPoint.Port == MemcachedDefaultPort)
+				{
+					address = currentNode.EndPoint.Address.ToString();
+				}
 
 				for (int mutation = 0; mutation < ServerAddressMutations / PartCount; mutation++)
 				{
@@ -143,8 +156,8 @@ namespace Enyim.Caching.Memcached
 
 			var retval = LocateNode(ld, this.GetKeyHash(key));
 
-			// if the result is not alive then try to mutate the item key and 
-			// find another node this way we do not have to reinitialize every 
+			// if the result is not alive then try to mutate the item key and
+			// find another node this way we do not have to reinitialize every
 			// time a node dies/comes back
 			// (DefaultServerPool will resurrect the nodes in the background without affecting the hashring)
 			if (!retval.IsAlive)
@@ -247,20 +260,20 @@ namespace Enyim.Caching.Memcached
 
 #region [ License information          ]
 /* ************************************************************
- * 
- *    Copyright (c) 2010 Attila Kiskó, enyim.com
- *    
+ *
+ *    Copyright (c) 2010 Attila Kiskï¿½, enyim.com
+ *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
  *    You may obtain a copy of the License at
- *    
+ *
  *        http://www.apache.org/licenses/LICENSE-2.0
- *    
+ *
  *    Unless required by applicable law or agreed to in writing, software
  *    distributed under the License is distributed on an "AS IS" BASIS,
  *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
- *    
+ *
  * ************************************************************/
 #endregion
